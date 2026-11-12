@@ -137,6 +137,24 @@ app.put('/scholarships/:id', async (req, res) => {
   }
 });
 
+app.delete('/scholarships/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!isValidId(id)) {
+    return res.status(400).json({ error: 'Invalid ID' });
+  }
+  try {
+    const [result] = await pool.query('DELETE FROM scholarships WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Scholarship not found' });
+    }
+    // 204 No Content: удалено, тело ответа пустое, поэтому send(), а не json()
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete scholarship' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
