@@ -1,0 +1,716 @@
+{
+  "info": {
+    "name": "ПР 39-40. CRUD-операции (стипендии и студенты)",
+    "description": "API стипендий и студентов, вариант 7. Сервер: в папке проекта `node index.js`, адрес http://localhost:3002.\n\nЗапросы выполняются по порядку сверху вниз. ID созданной записи сохраняется в переменную коллекции автоматически (вкладка Tests у запроса).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Чтение стипендий (Read)",
+      "description": "Задание 1: GET со списком, фильтром и поиском по ID.",
+      "item": [
+        {
+          "name": "1.1 Список всех стипендий",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships"
+              ]
+            },
+            "description": "Возвращает все стипендии вместе с ФИО студента (JOIN с таблицей students)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200: 1.1 Список всех стипендий', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Фильтр по типу: Социальная",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships?type=Социальная",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "Социальная"
+                }
+              ]
+            },
+            "description": "Параметр `type` передаётся в запрос к БД через `?` (параметризованный запрос), поэтому SQL-инъекция невозможна."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200: 1.2 Фильтр по типу: Социальная', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Стипендия по ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships",
+                "1"
+              ]
+            },
+            "description": "Одна запись по ID."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200: 1.3 Стипендия по ID', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 Нет записи с таким ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships/999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships",
+                "999"
+              ]
+            },
+            "description": "Записи с ID 999 нет: статус 404 и сообщение `Scholarship not found`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 404: 1.4 Нет записи с таким ID', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5 Некорректный ID (строка)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships",
+                "abc"
+              ]
+            },
+            "description": "ID должен быть положительным целым числом: статус 400 `Invalid ID`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 400: 1.5 Некорректный ID (строка)', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Создание стипендии (Create)",
+      "description": "Задание 2: POST с проверкой полей.",
+      "item": [
+        {
+          "name": "2.1 Создать стипендию",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_id\": 1,\n  \"type\": \"Академическая\",\n  \"amount\": 3500,\n  \"start_date\": \"2026-09-01\",\n  \"end_date\": \"2027-01-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Создаёт запись и возвращает её со статусом 201. ID новой записи сохраняется в переменную `scholarshipId` для следующих запросов. После запроса запись видна в phpMyAdmin."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 201: 2.1 Создать стипендию', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('scholarshipId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Неполные данные",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"Академическая\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Нет обязательных полей: статус 400 и текст первой ошибки (например `student_id must be a positive integer`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 400: 2.2 Неполные данные', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 Студента не существует (ошибка БД)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_id\": 999,\n  \"type\": \"Академическая\",\n  \"amount\": 3500,\n  \"start_date\": \"2026-09-01\",\n  \"end_date\": \"2027-01-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Поля заполнены верно, поэтому проверка пройдена, но студента с ID 999 нет. База не даёт сохранить запись из-за внешнего ключа (FOREIGN KEY), срабатывает catch: статус 500 `Failed to create scholarship`. Так проверяется пункт задания «ошибки БД — 500»."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 500: 2.3 Студента не существует (ошибка БД)', () => pm.response.to.have.status(500));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Изменение стипендии (Update)",
+      "description": "Задание 3: PUT обновляет все поля записи.",
+      "item": [
+        {
+          "name": "3.1 Изменить созданную стипендию",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships/{{scholarshipId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships",
+                "{{scholarshipId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_id\": 1,\n  \"type\": \"Повышенная\",\n  \"amount\": 9000,\n  \"start_date\": \"2026-09-01\",\n  \"end_date\": \"2027-01-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Меняет тип и сумму у записи из запроса 2.1, возвращает обновлённую запись."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200: 3.1 Изменить созданную стипендию', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 Изменить несуществующую",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships/999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships",
+                "999"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_id\": 1,\n  \"type\": \"Академическая\",\n  \"amount\": 3500,\n  \"start_date\": \"2026-09-01\",\n  \"end_date\": \"2027-01-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Записи нет: статус 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 404: 3.2 Изменить несуществующую', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Удаление стипендии (Delete)",
+      "description": "Задание 4: DELETE возвращает 204 без тела ответа.",
+      "item": [
+        {
+          "name": "4.1 Удалить созданную стипендию",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships/{{scholarshipId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships",
+                "{{scholarshipId}}"
+              ]
+            },
+            "description": "Удаляет запись из запроса 2.1. Статус 204 No Content, тела ответа нет."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 204: 4.1 Удалить созданную стипендию', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.2 Удалённой записи больше нет",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships/{{scholarshipId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships",
+                "{{scholarshipId}}"
+              ]
+            },
+            "description": "Проверка удаления: та же запись теперь не находится, статус 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 404: 4.2 Удалённой записи больше нет', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.3 Удалить несуществующую",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships/999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships",
+                "999"
+              ]
+            },
+            "description": "Записи нет: статус 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 404: 4.3 Удалить несуществующую', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.4 Некорректный ID (отрицательный)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scholarships/-1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "scholarships",
+                "-1"
+              ]
+            },
+            "description": "Отрицательный ID: статус 400 `Invalid ID`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 400: 4.4 Некорректный ID (отрицательный)', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Студенты (для ПР 41-42)",
+      "description": "Список, добавление, изменение и удаление студентов. Эти маршруты нужны фронтенду в ПР 41-42.",
+      "item": [
+        {
+          "name": "5.1 Список студентов",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200: 5.1 Список студентов', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.2 Добавить студента",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Новиков Илья Сергеевич\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "ID нового студента сохраняется в переменную `studentId`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 201: 5.2 Добавить студента', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('studentId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.3 Студент без ФИО",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Пустое ФИО: статус 400 `full_name is required`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 400: 5.3 Студент без ФИО', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.4 Изменить студента",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/students/{{studentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students",
+                "{{studentId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Новиков Илья Сергеевич (изменён)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200: 5.4 Изменить студента', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.5 Удалить студента",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/{{studentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students",
+                "{{studentId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 204: 5.5 Удалить студента', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3002",
+      "type": "string"
+    },
+    {
+      "key": "scholarshipId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

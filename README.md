@@ -11,6 +11,8 @@
 
 Сервер: http://localhost:3002
 
+Все запросы для Postman с описаниями: `ПР39-40.postman_collection.json` (Postman -> Import).
+
 ## Маршруты
 
 | Метод | Адрес | Описание |
