@@ -72,6 +72,43 @@ app.get('/scholarships/:id', async (req, res) => {
   }
 });
 
+// Проверка данных для POST и PUT. Возвращает текст ошибки или null, если всё правильно.
+// В скобках сразу достаём поля из req.body. = {} нужен, если тело запроса не прислали совсем:
+// тогда req.body = undefined, а из undefined поля не достать
+const validateScholarship = ({ student_id, type, amount, start_date, end_date } = {}) => {
+  if (!isValidId(student_id)) return 'student_id must be a positive integer';
+  if (typeof type !== 'string' || type.trim() === '') return 'type is required';
+  if (typeof amount !== 'number' || amount <= 0) return 'amount must be a positive number';
+  // шаблон даты: 4 цифры, дефис, 2 цифры, дефис, 2 цифры, например 2026-09-01
+  const dateFormat = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateFormat.test(start_date)) return 'start_date must be in YYYY-MM-DD format';
+  if (!dateFormat.test(end_date)) return 'end_date must be in YYYY-MM-DD format';
+  return null;
+};
+
+app.post('/scholarships', async (req, res) => {
+  // req.body уже объект: JSON из тела запроса разобрал app.use(express.json())
+  const error = validateScholarship(req.body);
+  if (error) {
+    return res.status(400).json({ error });
+  }
+  const { student_id, type, amount, start_date, end_date } = req.body;
+  try {
+    const [result] = await pool.query(
+      'INSERT INTO scholarships (student_id, type, amount, start_date, end_date) VALUES (?, ?, ?, ?, ?)',
+      [student_id, type.trim(), amount, start_date, end_date]
+    );
+    // INSERT возвращает не запись, а сводку: result.insertId - id, который база выдала новой строке.
+    // По нему читаем созданную запись и возвращаем её клиенту
+    const [rows] = await pool.query('SELECT * FROM scholarships WHERE id = ?', [result.insertId]);
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    // сюда попадём и при несуществующем student_id: внешний ключ не даст базе сохранить такую запись
+    res.status(500).json({ error: 'Failed to create scholarship' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
