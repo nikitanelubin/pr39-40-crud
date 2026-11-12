@@ -155,6 +155,78 @@ app.delete('/scholarships/:id', async (req, res) => {
   }
 });
 
+// ===== Студенты (нужны фронтенду в ПР 41-42) =====
+
+const validateStudent = ({ full_name } = {}) => {
+  if (typeof full_name !== 'string' || full_name.trim() === '') return 'full_name is required';
+  return null;
+};
+
+app.get('/students', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM students ORDER BY id');
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch students' });
+  }
+});
+
+app.post('/students', async (req, res) => {
+  const error = validateStudent(req.body);
+  if (error) {
+    return res.status(400).json({ error });
+  }
+  try {
+    const [result] = await pool.query('INSERT INTO students (full_name) VALUES (?)', [req.body.full_name.trim()]);
+    const [rows] = await pool.query('SELECT * FROM students WHERE id = ?', [result.insertId]);
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create student' });
+  }
+});
+
+app.put('/students/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!isValidId(id)) {
+    return res.status(400).json({ error: 'Invalid ID' });
+  }
+  const error = validateStudent(req.body);
+  if (error) {
+    return res.status(400).json({ error });
+  }
+  try {
+    const [result] = await pool.query('UPDATE students SET full_name = ? WHERE id = ?', [req.body.full_name.trim(), id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    const [rows] = await pool.query('SELECT * FROM students WHERE id = ?', [id]);
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update student' });
+  }
+});
+
+app.delete('/students/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!isValidId(id)) {
+    return res.status(400).json({ error: 'Invalid ID' });
+  }
+  try {
+    // ON DELETE CASCADE в database.sql: вместе со студентом база сама удалит его стипендии
+    const [result] = await pool.query('DELETE FROM students WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete student' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
